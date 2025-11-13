@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jericho Household Masters - Home</title>
+<style>
+body { font-family: Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; }
+header { background-color: #0288d1; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+header h1 { font-size: 20px; margin: 0; }
+.header-buttons { display: flex; gap: 8px; }
+.header-buttons button { background-color: white; color: #0288d1; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; min-width: 60px; transition: 0.3s; }
+.header-buttons button:hover { background-color: #e1f5fe; }
+.search-container { display: flex; justify-content: center; margin: 20px; }
+#searchInput { width: 80%; max-width: 500px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; outline: none; }
+.house-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; padding: 20px; }
+.house-card { background: white; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); padding: 15px; text-align: center; cursor: pointer; transition: 0.3s; }
+.house-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.house-card img { width: 100%; height: 180px; border-radius: 8px; object-fit: cover; }
+footer { text-align: center; padding: 10px; color: #555; }
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+.modal-content { background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; }
+.close { float: right; color: #777; cursor: pointer; font-size: 18px; }
+.modal-content button { margin: 10px 5px 0 5px; background-color: #0288d1; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+.modal-content button:hover { background-color: #0277bd; }
+textarea, select { width: 100%; border-radius: 5px; border: 1px solid #ccc; outline: none; padding: 10px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏠 Jericho Household Masters</h1>
+  <div class="header-buttons">
+    <button onclick="openHelp()">Help</button>
+    <button onclick="openContact()">Contact</button>
+    <button onclick="openAbout()">About</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<div class="search-container">
+  <input type="text" id="searchInput" placeholder="Search by name or location...">
+</div>
+
+<div class="house-list" id="houseList"></div>
+
+<footer>
+  <p>&copy; 2025 Jericho Household Masters</p>
+</footer>
+
+<!-- Help Modal -->
+<div id="helpModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeHelp()">&times;</span>
+    <h3>Help / Feedback</h3>
+    <p>Have a question or feedback? Let us know below:</p>
+    <textarea id="feedbackText" rows="4" placeholder="Type your message here..."></textarea>
+    <button onclick="submitFeedback()">Submit</button>
+  </div>
+</div>
+
+<!-- Contact Modal -->
+<div id="contactModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeContact()">&times;</span>
+    <h3>Contact Developer</h3>
+    <p><strong>Name:</strong> Owino Julian</p>
+    <p><strong>Phone:</strong> 0794307503</p>
+    <p><strong>Email:</strong> julianochieng345@gmail.com</p>
+  </div>
+</div>
+
+<!-- About Modal -->
+<div id="aboutModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeAbout()">&times;</span>
+    <h3>About Jericho Household Masters</h3>
+    <p>This platform allows users to view, compare, and book rental houses or plots within Jericho region. Managed by <strong>Owino Julian</strong>.</p>
+  </div>
+</div>
+
+<!-- House Booking Modal -->
+<div id="houseModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeHouseModal()">&times;</span>
+    <h3 id="houseName"></h3>
+    <p id="houseLocation"></p>
+    <div>
+      <button onclick="showHouseDetails()">About</button>
+      <button onclick="openHouseFeedback()">Feedback</button>
+    </div>
+    <div id="houseDetails" style="display:none; margin-top:10px; text-align:left;">
+      <label for="roomSelect"><strong>Select Room Type:</strong></label>
+      <select id="roomSelect"></select>
+      <button onclick="bookRoom()">Book Selected Room</button>
+    </div>
+    <div id="houseFeedback" style="display:none; margin-top:10px;">
+      <textarea id="houseFeedbackText" rows="3" placeholder="Type feedback for this house..."></textarea>
+      <button onclick="submitHouseFeedback()">Submit Feedback</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Redirect if not logged in
+if (localStorage.getItem("isLoggedIn") !== "true") {
+  window.location.href = "login.html";
+}
+
+// Houses data
+const houses = [
+  { name: "Kaggia Hostels", location: "Kirimari", rooms: ["1 Bedroom","Single Room"], image: "images/house1.jpg" },
+  { name: "Perez Hostels", location: "Kirimari", rooms: ["1 Bedroom","Single Room","Bedsitter"], image: "images/house2.jpg" },
+  { name: "North Oak Apartments", location: "Town", rooms: ["2 Bedrooms Only"], image: "images/house3.jpg" },
+  { name: "Bangik Lounge", location: "Bangik", rooms: ["3 Bedrooms","2 Bedrooms","Bedsitter"], image: "images/house4.jpg" },
+  { name: "Njukiri Plots", location: "Njukiri", rooms: ["Single Room"], image: "images/house5.jpg" }
+];
+
+const houseList = document.getElementById("houseList");
+const searchInput = document.getElementById("searchInput");
+let selectedHouse = null;
+
+// Display houses
+function displayHouses(list) {
+  houseList.innerHTML = "";
+  list.forEach(h => {
+    const card = document.createElement("div");
+    card.className = "house-card";
+    card.innerHTML = `<img src="${h.image}" alt="${h.name}"><h3>${h.name}</h3><p>${h.location}</p>`;
+    card.onclick = () => openHouseModal(h);
+    houseList.appendChild(card);
+  });
+}
+displayHouses(houses);
+
+// Search bar
+searchInput.addEventListener("input", () => {
+  const term = searchInput.value.toLowerCase();
+  displayHouses(houses.filter(h => h.name.toLowerCase().includes(term) || h.location.toLowerCase().includes(term)));
+});
+
+// Header modal functions
+function openHelp(){document.getElementById("helpModal").style.display="flex";}
+function closeHelp(){document.getElementById("helpModal").style.display="none";}
+function openContact(){document.getElementById("contactModal").style.display="flex";}
+function closeContact(){document.getElementById("contactModal").style.display="none";}
+function openAbout(){document.getElementById("aboutModal").style.display="flex";}
+function closeAbout(){document.getElementById("aboutModal").style.display="none";}
+function submitFeedback(){
+  const feedback=document.getElementById("feedbackText").value.trim();
+  if(!feedback){alert("Please enter your feedback first."); return;}
+  alert("Thank you for your feedback! We appreciate your input.");
+  document.getElementById("feedbackText").value="";
+  closeHelp();
+}
+function logout(){
+  if(confirm("Are you sure you want to log out?")){
+    localStorage.removeItem("isLoggedIn");
+    window.location.href="login.html";
+  }
+}
+
+// House modal functions
+function openHouseModal(h){
+  selectedHouse = h;
+  document.getElementById("houseName").innerText = h.name;
+  document.getElementById("houseLocation").innerText = "Location: " + h.location;
+  document.getElementById("houseDetails").style.display = "none";
+  document.getElementById("houseFeedback").style.display = "none";
+  document.getElementById("houseModal").style.display = "flex";
+}
+
+function closeHouseModal(){ document.getElementById("houseModal").style.display = "none"; }
+
+function showHouseDetails(){
+  if(selectedHouse){
+    const select = document.getElementById("roomSelect");
+    select.innerHTML = "";
+    selectedHouse.rooms.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r;
+      opt.text = r;
+      select.appendChild(opt);
+    });
+    document.getElementById("houseDetails").style.display = "block";
+    document.getElementById("houseFeedback").style.display = "none";
+  }
+}
+
+function openHouseFeedback(){
+  document.getElementById("houseFeedbackText").value="";
+  document.getElementById("houseFeedback").style.display="block";
+  document.getElementById("houseDetails").style.display="none";
+}
+
+function submitHouseFeedback(){
+  const feedback=document.getElementById("houseFeedbackText").value.trim();
+  if(!feedback){alert("Please type feedback first."); return;}
+  alert("Thank you for your feedback on " + selectedHouse.name + "!");
+  document.getElementById("houseFeedbackText").value="";
+  document.getElementById("houseFeedback").style.display="none";
+}
+
+// Room booking
+function bookRoom(){
+  const selectedRoom = document.getElementById("roomSelect").value;
+  if(!selectedRoom){ alert("Please select a room type first."); return; }
+
+  const userEmail = localStorage.getItem("userEmail") || "Unknown User";
+  let bookings = JSON.parse(localStorage.getItem("bookings")) || [];
+
+  bookings.push({
+    user: userEmail,
+    house: selectedHouse.name,
+    roomType: selectedRoom,
+    location: selectedHouse.location,
+    date: new Date().toLocaleString()
+  });
+
+  localStorage.setItem("bookings", JSON.stringify(bookings));
+  alert(`You have successfully booked a ${selectedRoom} at ${selectedHouse.name}.`);
+  closeHouseModal();
+}
+</script>
+</body>
+</html>
