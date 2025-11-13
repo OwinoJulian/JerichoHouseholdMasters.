@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jericho Household Masters</title>
+<style>
+body { font-family: Arial, sans-serif; margin:0; background:#f1f5f9; }
+header { background:#0288d1; color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; }
+header h1 { margin:0; font-size:20px; }
+.header-buttons { display:flex; gap:10px; }
+.header-buttons button { background:white; color:#0288d1; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:12px; font-weight:bold; }
+.header-buttons button:hover { background:#e1f5fe; }
+
+.search-container { display:flex; justify-content:center; margin:20px; }
+#searchInput { width:80%; max-width:500px; padding:10px; border:1px solid #ccc; border-radius:5px; }
+
+.house-list { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; padding:20px; }
+.house-card { background:white; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); padding:10px; cursor:pointer; transition:0.3s; text-align:center; }
+.house-card:hover { transform:translateY(-3px); box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+.house-card img { width:100%; border-radius:8px; height:120px; object-fit:cover; }
+
+footer { text-align:center; padding:10px; color:#555; }
+
+.modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; }
+.modal-content { background:white; padding:20px; border-radius:10px; width:90%; max-width:400px; text-align:center; position:relative; }
+.close { float:right; color:#777; cursor:pointer; font-size:18px; }
+.close:hover { color:red; }
+
+input, textarea { width:100%; padding:10px; margin-top:10px; border-radius:5px; border:1px solid #ccc; outline:none; }
+button.submit { margin-top:10px; background-color:#0288d1; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; }
+button.submit:hover { background-color:#0277bd; }
+
+</style>
+</head>
+<body>
+
+<header>
+<h1>Jericho Household Masters</h1>
+<div class="header-buttons">
+<button onclick="openContact()">Contact</button>
+<button onclick="openHelp()">Help</button>
+<button onclick="logout()">Logout</button>
+</div>
+</header>
+
+<div class="search-container">
+<input type="text" id="searchInput" placeholder="Search by location or price...">
+</div>
+
+<div id="houseList" class="house-list"></div>
+
+<footer>&copy; 2025 Jericho Household Masters</footer>
+
+<!-- Login Modal -->
+<div id="loginModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('loginModal')">&times;</span>
+    <h2>Login</h2>
+    <input type="email" id="loginEmail" placeholder="Email">
+    <input type="password" id="loginPassword" placeholder="Password">
+    <button class="submit" onclick="login()">Login</button>
+    <p style="margin-top:10px;">Don't have an account? <span style="cursor:pointer; color:#0288d1;" onclick="openModal('registerModal')">Register here</span></p>
+  </div>
+</div>
+
+<!-- Register Modal -->
+<div id="registerModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('registerModal')">&times;</span>
+    <h2>Register</h2>
+    <input type="email" id="registerEmail" placeholder="Email">
+    <input type="password" id="registerPassword" placeholder="Password">
+    <button class="submit" onclick="register()">Register</button>
+  </div>
+</div>
+
+<!-- Help / Feedback Modal -->
+<div id="helpModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('helpModal')">&times;</span>
+    <h3>Help / Feedback</h3>
+    <textarea id="feedbackText" placeholder="Type your message here..." rows="4"></textarea>
+    <button class="submit" onclick="submitFeedback()">Submit</button>
+  </div>
+</div>
+
+<!-- Contact Modal -->
+<div id="contactModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('contactModal')">&times;</span>
+    <h3>Contact Developer</h3>
+    <p><strong>Name:</strong> Owino Julian</p>
+    <p><strong>Phone:</strong> 0794307503</p>
+    <p><strong>Email:</strong> julianochieng345@gmail.com</p>
+  </div>
+</div>
+
+<!-- House Details / Booking Modal -->
+<div id="houseModal" class="modal">
+  <div class="modal-content" id="houseModalContent">
+    <span class="close" onclick="closeModal('houseModal')">&times;</span>
+    <div id="houseDetails"></div>
+    <button class="submit" onclick="bookHouse()">Book This House</button>
+  </div>
+</div>
+
+<script>
+// ================== Users & Login ==================
+function openModal(id){ document.getElementById(id).style.display='flex'; }
+function closeModal(id){ document.getElementById(id).style.display='none'; }
+
+const predefinedUser = { email: 'julianochieng345@gmail.com', password: '#Julian.2580' };
+
+function login(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value.trim();
+  let users=JSON.parse(localStorage.getItem('users'))||[];
+  if(!users.find(u=>u.email===predefinedUser.email)) users.push(predefinedUser);
+  localStorage.setItem('users', JSON.stringify(users));
+  const user=users.find(u=>u.email===email && u.password===password);
+  if(user){
+    localStorage.setItem('isLoggedIn','true'); localStorage.setItem('userEmail',email);
+    closeModal('loginModal'); displayHouses(houses);
+  } else { alert('Invalid email or password'); }
+}
+
+function register(){
+  const email=document.getElementById('registerEmail').value.trim();
+  const password=document.getElementById('registerPassword').value.trim();
+  if(!email||!password){ alert('Enter email and password'); return; }
+  let users=JSON.parse(localStorage.getItem('users'))||[];
+  if(users.find(u=>u.email===email)){ alert('Email already registered'); return; }
+  users.push({email,password}); localStorage.setItem('users',JSON.stringify(users));
+  localStorage.setItem('isLoggedIn','true'); localStorage.setItem('userEmail',email);
+  closeModal('registerModal'); displayHouses(houses);
+}
+
+function logout(){
+  localStorage.removeItem('isLoggedIn'); localStorage.removeItem('userEmail'); location.reload();
+}
+
+// ================== Houses Data ==================
+const houses=[
+  {name:"Kaggia Hostels",location:"Kirimari",rooms:"1 Bedroom, Single Room",img:"images/house1.jpg"},
+  {name:"Perez Hostels",location:"Kirimari",rooms:"1 Bedroom, Single Rooms, Bedsitters",img:"images/house2.jpg"},
+  {name:"North Oak Apartments",location:"-",rooms:"2 Bedrooms Only",img:"images/house3.jpg"},
+  {name:"Bangik Lounge",location:"Bangik",rooms:"3 Bedrooms, 2 Bedrooms, Bedsitters",img:"images/house4.jpg"},
+  {name:"Njukiri Plots",location:"Njukiri",rooms:"Single Rooms",img:"images/house5.jpg"}
+];
+
+const houseList=document.getElementById('houseList');
+const searchInput=document.getElementById('searchInput');
+
+function displayHouses(list){
+  houseList.innerHTML='';
+  list.forEach(house=>{
+    const card=document.createElement('div'); card.className='house-card';
+    card.innerHTML=`<img src="${house.img}" alt="${house.name}"><h4>${house.name}</h4>`;
+    card.onclick=()=>{ openHouseModal(house); };
+    houseList.appendChild(card);
+  });
+}
+
+searchInput.addEventListener('input',()=>{
+  const term=searchInput.value.toLowerCase();
+  const filtered=houses.filter(h=>h.location.toLowerCase().includes(term)||h.name.toLowerCase().includes(term));
+  displayHouses(filtered);
+});
+
+// ================== House Modal ==================
+let currentHouse=null;
+function openHouseModal(house){
+  currentHouse=house;
+  document.getElementById('houseDetails').innerHTML=
+  `<h3>${house.name}</h3><p><strong>Location:</strong> ${house.location}</p><p><strong>Rooms:</strong> ${house.rooms}</p>`;
+  openModal('houseModal');
+}
+
+function bookHouse(){
+  const bookings=JSON.parse(localStorage.getItem('bookings'))||[];
+  bookings.push({user:localStorage.getItem('userEmail'),house:currentHouse.name});
+  localStorage.setItem('bookings',JSON.stringify(bookings));
+  alert('House booked successfully!');
+  closeModal('houseModal');
+}
+
+// ================== Feedback / Help ==================
+function openHelp(){ openModal('helpModal'); }
+function submitFeedback(){
+  const msg=document.getElementById('feedbackText').value.trim();
+  if(!msg){ alert('Enter feedback'); return; }
+  const feedbacks=JSON.parse(localStorage.getItem('feedbacks'))||[];
+  feedbacks.push({user:localStorage.getItem('userEmail'),house:currentHouse?currentHouse.name:null,message:msg});
+  localStorage.setItem('feedbacks',JSON.stringify(feedbacks));
+  alert('Feedback submitted!');
+  document.getElementById('feedbackText').value=''; closeModal('helpModal');
+}
+
+// ================== Contact ==================
+function openContact(){ openModal('contactModal'); }
+
+// ================== Initialize ==================
+window.onload=function(){
+  if(localStorage.getItem('isLoggedIn')!=='true'){
+    openModal('loginModal');
+  } else {
+    displayHouses(houses);
+  }
+};
+</script>
+</body>
+  </html>
